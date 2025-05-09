@@ -77,39 +77,98 @@ def get_data(user_id, lang):
     eof = False
     n = 1
     FA = "https://www.filmaffinity.com/" + lang + \
-         "/userratings.php?user_id={id}&p={n}&orderby=4"
+         "/userratings.php?user_id={id}&p={n}&orderby=4&chv=list"
     print(FA)
 
     while not eof:
         url = FA.format(id=user_id, n=n)
-        print(url)
-        request = requests.get(FA.format(id=user_id, n=n))
+        print(f"Downloading page: {url}")
+        request = requests.get(url)
         request.encoding = "utf-8"
         page = bs4.BeautifulSoup(request.text, "lxml")
-        tags = page.find_all(
-            class_=["user-ratings-header", "user-ratings-movie"])
-        cur_date = None
+        rows = page.find_all("div", class_="row mb-4")
+        print(f"  Movie rows found on page: {len(rows)}")
 
-        for tag in tags:
-            if tag["class"] == ["user-ratings-header"]:
-                cur_date = get_date(tag, lang)
-            elif is_film(tag, lang):
-                title = tag.find_all(class_="mc-title")[0].a
-                film = {
-                    "Title": title.string.strip(),
-                    "Year": title.next_sibling.strip()[1:-1],
-                    "Directors": get_directors(tag),
-                    "WatchedDate": cur_date,
-                    "Rating": int(tag.find_all(class_="ur-mr-rat")[0].string) / 2,
-                    "Rating10": tag.find_all(class_="ur-mr-rat")[0].string
-                }
-                data.append(film)
+        # Find all date headers to associate with movies
+        headers = page.find_all("div", class_="user-ratings-header")
+        header_dates = []
+        for header in headers:
+            date_text = header.get_text(strip=True)
+            import re
+            import datetime
+            match = re.search(r"Rated on (.+)", date_text)
+            if match:
+                try:
+                    date = datetime.datetime.strptime(match.group(1), "%B %d, %Y").strftime("%Y-%m-%d")
+                except Exception:
+                    date = match.group(1)
+            else:
+                date = ""
+            header_dates.append((header, date))
 
-        eof = request.status_code != 200
+        for row in rows:
+            # User rating
+            user_rating = ""
+            col2 = row.find("div", class_="col-2")
+            if col2:
+                user_rating_tag = col2.find("div", class_="fa-user-rat-box")
+                user_rating = user_rating_tag.get_text(strip=True) if user_rating_tag else ""
+
+            # Movie item
+            item = row.find("div", class_="user-ratings-movie-item")
+            if not item:
+                continue
+
+            # Find the closest previous header for WatchedDate
+            watched_date = ""
+            for header, date in reversed(header_dates):
+                if header and header.sourceline and row.sourceline and header.sourceline < row.sourceline:
+                    watched_date = date
+                    break
+                elif header and not header.sourceline:
+                    watched_date = date
+                    break
+
+            # Title
+            title_tag = item.find("div", class_="mc-title")
+            title = title_tag.get_text(strip=True) if title_tag else "(No title)"
+            # Year
+            year_tag = item.find("span", class_="mc-year")
+            year = year_tag.get_text(strip=True) if year_tag else ""
+            # Average rating
+            avg_rating_tag = item.find("div", class_="avg mx-0")
+            avg_rating = avg_rating_tag.get_text(strip=True) if avg_rating_tag else ""
+            # Directors
+            directors_tag = item.find("div", class_="mc-director")
+            if directors_tag:
+                directors = ", ".join([a.get_text(strip=True) for a in directors_tag.find_all("a")])
+            else:
+                directors = ""
+            # Actors (credits)
+            actors_tag = item.find("div", class_="credits")
+            if actors_tag:
+                actors = actors_tag.get_text(strip=True)
+            else:
+                actors = ""
+
+            print(f"    Title: {title} | Year: {year} | User Rating: {user_rating} | Avg Rating: {avg_rating} | WatchedDate: {watched_date} | Directors: {directors} | Actors: {actors}")
+
+            film = {
+                "Title": title,
+                "Year": year,
+                "UserRating": user_rating,
+                "AvgRating": avg_rating,
+                "WatchedDate": watched_date,
+                "Directors": directors,
+                "Actors": actors
+            }
+            data.append(film)
+
+        eof = request.status_code != 200 or len(rows) == 0
         if not eof:
-            print("Página {n}".format(n=n), end="\r")
+            print(f"Page {n}", end="\r")
         else:
-            print("Página {n}. Download complete!".format(n=n - 1))
+            print(f"Page {n-1}. Download complete!")
 
         n += 1
 
@@ -143,9 +202,7 @@ if __name__ == "__main__":
         choices={"es", "en"})
 
     args = parser.parse_args()
-    export_file = args.csv[
-        0] if args.csv else "filmAffinity_{lang}_{id}.csv".format(
-        id=args.id, lang=args.lang[0])
+    export_file = args.csv[0] if args.csv else f"filmAffinity_{args.id}.csv"
 
     try:
         set_locale(args.lang[0])
