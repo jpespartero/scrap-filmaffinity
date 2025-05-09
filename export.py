@@ -1,10 +1,3 @@
-#! /usr/bin/python3
-# Author: Pablo Baeyens
-# Usage:
-#   ./faScrap.py -h
-# for usage info and options
-import time
-
 import argparse
 import requests
 import csv
