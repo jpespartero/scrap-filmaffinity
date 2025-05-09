@@ -2,6 +2,16 @@
 
 A Python script to export your FilmAffinity movie ratings and details to a CSV file. This tool helps you download your personal movie ratings data for offline use or data analysis.
 
+## Disclaimer
+
+This tool is intended for **personal use only**. Its sole purpose is to help the user **download their own movie ratings** from FilmAffinity for offline use, data analysis, or personal projects.
+
+This project is **not affiliated with, endorsed by, or associated with FilmAffinity** in any way.
+
+Please respect the terms of service of FilmAffinity. Use this code responsibly and **only to access your own data**.
+
+If you are a representative of FilmAffinity and have any concerns, feel free to open an issue or contact me for prompt removal or modification.
+
 ## Attribution
 
 This project is based on the original work by [@renefs](https://gist.github.com/renefs/a10a3e9f17b30edf431619ddcc629f2e). The code has been modified and enhanced for improved functionality and maintainability.
@@ -57,16 +67,6 @@ The script generates a CSV file with the following columns:
 - AvgRating
 - Directors
 - Actors
-
-## Disclaimer
-
-This tool is intended for **personal use only**. Its sole purpose is to help the user **download their own movie ratings** from FilmAffinity for offline use, data analysis, or personal projects.
-
-This project is **not affiliated with, endorsed by, or associated with FilmAffinity** in any way.
-
-Please respect the terms of service of FilmAffinity. Use this code responsibly and **only to access your own data**.
-
-If you are a representative of FilmAffinity and have any concerns, feel free to open an issue or contact me for prompt removal or modification.
 
 ## License
 
